@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { API_BASE_URL } from '../api/apiConfig'
 import {useNavigate} from 'react-router-dom'
+import './AuthPage.css'
 
 function LoginPage() {
   const [formData, setFormData] = useState({
@@ -16,6 +17,22 @@ function LoginPage() {
       ...formData,
       [name]: value
     })
+  }
+
+  const getErrorMessage = (data) => {
+    if (typeof data === 'string') {
+      return data
+    }
+
+    if (data?.message) {
+      return data.message
+    }
+
+    if (typeof data === 'object' && data !== null) {
+      return Object.values(data).join(', ')
+    }
+
+    return 'Login failed'
   }
 
   const [error, setError] = useState('')
@@ -49,12 +66,7 @@ function LoginPage() {
     }
 
     if (!response.ok) {
-      if (typeof data === 'string') {
-        setError(data)
-      } else {
-        setError(data.message || 'Registration failed')
-      }
-
+      setError(getErrorMessage(data))
       return
     }
 
@@ -64,10 +76,10 @@ function LoginPage() {
   }
 
   return (
-    <div>
+    <div className="auth-page">
       <h1>Login</h1>
 
-      <form onSubmit={handleSubmit}>
+      <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="email"
           name="email"
@@ -87,7 +99,7 @@ function LoginPage() {
         <button type="submit">
           Login
         </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p className="form-error">{error}</p>}
       </form>
     </div>
   )

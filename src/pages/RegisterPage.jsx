@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../api/apiConfig'
+import './AuthPage.css'
 
 function RegisterPage() {
   const navigate = useNavigate()
@@ -21,6 +22,22 @@ function RegisterPage() {
   }
 
   const [error, setError] = useState('')
+
+  const getErrorMessage = (data) => {
+    if (typeof data === 'string') {
+      return data
+    }
+
+    if (data?.message) {
+      return data.message
+    }
+
+    if (typeof data === 'object' && data !== null) {
+      return Object.values(data).join(', ')
+    }
+
+    return 'Registration failed'
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -49,12 +66,7 @@ function RegisterPage() {
     }
 
     if (!response.ok) {
-      if (typeof data === 'string') {
-        setError(data)
-      } else {
-        setError(data.message || 'Registration failed')
-      }
-
+      setError(getErrorMessage(data))
       return
     }
 
@@ -62,10 +74,10 @@ function RegisterPage() {
   }
 
   return (
-    <div>
+    <div className="auth-page">
       <h1>Register</h1>
 
-      <form onSubmit={handleSubmit}>
+      <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="name"
@@ -93,7 +105,7 @@ function RegisterPage() {
         <button type="submit">
           Register
         </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p className="form-error">{error}</p>}
       </form>
     </div>
   )

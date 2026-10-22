@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../api/apiConfig'
 import { useNavigate } from 'react-router-dom'
+import './TaskPage.css'
 
 function TaskPage() {
   const [tasks, setTasks] = useState([])
@@ -213,16 +214,16 @@ function TaskPage() {
   }
 
   return (
-    <div>
+    <div className="task-page">
       <h1>My Tasks</h1>
 
-      <button onClick={handleLogout}>
+      <button className="logout-button" onClick={handleLogout}>
         Logout
       </button>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="form-error">{error}</p>}
 
-      <form onSubmit={handleSubmit}>
+      <form className="task-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="title"
@@ -264,6 +265,7 @@ function TaskPage() {
       </form>
 
       <select
+        className="task-filter task-filter-status"
         value={statusFilter}
         onChange={(event) => {
             setStatusFilter(event.target.value) 
@@ -277,6 +279,7 @@ function TaskPage() {
       </select>
 
       <select
+        className="task-filter task-filter-priority"
         value={priorityFilter}
         onChange={(event) => {
             setPriorityFilter(event.target.value)
@@ -290,22 +293,22 @@ function TaskPage() {
       </select>
 
       {tasks.map((task) => (
-        <div key={task.id}>
+        <div className="task-card" data-priority={task.priority} key={task.id}>
           <h3>{task.title}</h3>
-          <p>{task.description}</p>
-          <p>Status: {task.status}</p>
-          <p>Priority: {task.priority}</p>
+          <p className="task-description">{task.description}</p>
+          <p className="task-status" data-status={task.status}>Status: {task.status}</p>
+          <p className="task-priority" data-priority={task.priority}>Priority: {task.priority}</p>
 
-          <button onClick={() => handleDelete(task.id)}>
+          <button className="task-delete-button" onClick={() => handleDelete(task.id)}>
             Delete
           </button>
-          <button onClick={() => handleEdit(task)}>
+          <button className="task-edit-button" onClick={() => handleEdit(task)}>
             Edit
           </button>
         </div>
       ))}
 
-      <div>
+      <div className="task-pagination">
         <button
           onClick={() => setPage(page - 1)}
           disabled={page === 0}
