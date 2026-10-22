@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../api/apiConfig'
 
 function RegisterPage() {
+  const navigate = useNavigate()
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,24 +20,46 @@ function RegisterPage() {
     })
   }
 
-    const handleSubmit = async (event) => {
-        event.preventDefault()
+  const [error, setError] = useState('')
 
-        const response = await fetch(
-            `${API_BASE_URL}/api/auth/register`,
-            {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-            }
-        )
+  const handleSubmit = async (event) => {
+    event.preventDefault()
 
-        const data = await response.json()
+    setError('')
 
-        console.log(data)
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/register`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      }
+    )
+
+    const contentType = response.headers.get('content-type')
+
+    let data
+
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      data = await response.text()
     }
+
+    if (!response.ok) {
+      if (typeof data === 'string') {
+        setError(data)
+      } else {
+        setError(data.message || 'Registration failed')
+      }
+
+      return
+    }
+
+    navigate('/login')
+  }
 
   return (
     <div>
@@ -68,6 +93,7 @@ function RegisterPage() {
         <button type="submit">
           Register
         </button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
     </div>
   )

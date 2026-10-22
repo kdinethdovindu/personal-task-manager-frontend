@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { API_BASE_URL } from '../api/apiConfig'
+import {useNavigate} from 'react-router-dom'
 
 function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+  
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -16,26 +18,50 @@ function LoginPage() {
     })
   }
 
-    const handleSubmit = async (event) => {
-        event.preventDefault()
+  const [error, setError] = useState('')
 
-        const response = await fetch(
-            `${API_BASE_URL}/api/auth/login`,
-            {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-            }
-        )
+  const navigate = useNavigate()
 
-        const data = await response.json()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
 
-        localStorage.setItem('token', data.token)
+    setError('')
 
-        console.log(data)
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/login`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      }
+    )
+
+    const contentType = response.headers.get('content-type')
+
+    let data
+
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      data = await response.text()
     }
+
+    if (!response.ok) {
+      if (typeof data === 'string') {
+        setError(data)
+      } else {
+        setError(data.message || 'Registration failed')
+      }
+
+      return
+    }
+
+    localStorage.setItem('token', data.token)
+
+    navigate('/tasks')
+  }
 
   return (
     <div>
@@ -61,6 +87,7 @@ function LoginPage() {
         <button type="submit">
           Login
         </button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
     </div>
   )
