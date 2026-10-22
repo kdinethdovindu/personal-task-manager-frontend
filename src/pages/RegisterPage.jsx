@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../api/apiConfig'
+import { getErrorMessage, readResponse } from '../api/responseUtils'
 import './AuthPage.css'
 
 function RegisterPage() {
@@ -23,54 +24,33 @@ function RegisterPage() {
 
   const [error, setError] = useState('')
 
-  const getErrorMessage = (data) => {
-    if (typeof data === 'string') {
-      return data
-    }
-
-    if (data?.message) {
-      return data.message
-    }
-
-    if (typeof data === 'object' && data !== null) {
-      return Object.values(data).join(', ')
-    }
-
-    return 'Registration failed'
-  }
-
   const handleSubmit = async (event) => {
     event.preventDefault()
 
     setError('')
 
-    const response = await fetch(
-      `${API_BASE_URL}/api/auth/register`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/register`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        }
+      )
+      const data = await readResponse(response)
+
+      if (!response.ok) {
+        setError(getErrorMessage(data, 'Registration failed'))
+        return
       }
-    )
 
-    const contentType = response.headers.get('content-type')
-
-    let data
-
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
-    } else {
-      data = await response.text()
+      navigate('/login')
+    } catch {
+      setError('Unable to reach the server. Please try again.')
     }
-
-    if (!response.ok) {
-      setError(getErrorMessage(data))
-      return
-    }
-
-    navigate('/login')
   }
 
   return (
@@ -81,6 +61,7 @@ function RegisterPage() {
         <input
           type="text"
           name="name"
+          aria-label="Name"
           placeholder="Name"
           value={formData.name}
           onChange={handleChange}
@@ -89,6 +70,7 @@ function RegisterPage() {
         <input
           type="email"
           name="email"
+          aria-label="Email"
           placeholder="Email"
           value={formData.email}
           onChange={handleChange}
@@ -97,6 +79,7 @@ function RegisterPage() {
         <input
           type="password"
           name="password"
+          aria-label="Password"
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}

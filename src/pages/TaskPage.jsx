@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../api/apiConfig'
+import { getErrorMessage, readResponse } from '../api/responseUtils'
 import { useNavigate } from 'react-router-dom'
 import './TaskPage.css'
 
@@ -19,61 +20,53 @@ function TaskPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
 
-  const getErrorMessage = (data, fallbackMessage) => {
-    if (data.message) {
-      return data.message
-    }
-
-    if (typeof data === 'object') {
-      return Object.values(data).join(', ')
-    }
-
-    return fallbackMessage
-  }
-
   useEffect(() => {
     const fetchTasks = async () => {
-      const token = localStorage.getItem('token')
+      try {
+        const token = localStorage.getItem('token')
+        let url
 
-      let url
-
-      if (statusFilter) {
-        url = `${API_BASE_URL}/api/tasks?status=${statusFilter}`
-      } else if (priorityFilter) {
-        url = `${API_BASE_URL}/api/tasks?priority=${priorityFilter}`
-      } else {
-        url = `${API_BASE_URL}/api/tasks/page?page=${page}&size=5&sort=id,desc`
-      }
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`
+        if (statusFilter) {
+          url = `${API_BASE_URL}/api/tasks?status=${statusFilter}`
+        } else if (priorityFilter) {
+          url = `${API_BASE_URL}/api/tasks?priority=${priorityFilter}`
+        } else {
+          url = `${API_BASE_URL}/api/tasks/page?page=${page}&size=5&sort=id,desc`
         }
-      })
 
-      if (response.status === 401) {
-        localStorage.removeItem('token')
-        navigate('/login')
-        return
-      }
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
 
-      const data = await response.json()
+        if (response.status === 401) {
+          localStorage.removeItem('token')
+          navigate('/login')
+          return
+        }
 
-      if (!response.ok) {
-        setError(getErrorMessage(data, 'Could not load tasks'))
-        return
-      }
+        const data = await readResponse(response)
 
-      if (statusFilter || priorityFilter) {
-        setTasks(data)
-      } else {
-        setTasks(data.content)
-        setTotalPages(data.totalPages)
+        if (!response.ok) {
+          setError(getErrorMessage(data, 'Could not load tasks'))
+          return
+        }
+
+        if (statusFilter || priorityFilter) {
+          setTasks(Array.isArray(data) ? data : [])
+          setTotalPages(0)
+        } else {
+          setTasks(data?.content || [])
+          setTotalPages(data?.totalPages || 0)
+        }
+      } catch {
+        setError('Unable to load tasks. Please try again.')
       }
     }
 
     fetchTasks()
-  }, [statusFilter, priorityFilter, page])
+  }, [statusFilter, priorityFilter, page, navigate])
 
   const handleUnauthorized = (response) => {
     if (response.status === 401) {
@@ -101,7 +94,8 @@ function TaskPage() {
 
     const token = localStorage.getItem('token')
 
-    if (editingTaskId) {
+    try {
+      if (editingTaskId) {
       const response = await fetch(
         `${API_BASE_URL}/api/tasks/${editingTaskId}`,
         {
@@ -118,7 +112,7 @@ function TaskPage() {
         return
       }
 
-      const updatedTask = await response.json()
+      const updatedTask = await readResponse(response)
 
       if (!response.ok) {
         setError(getErrorMessage(updatedTask, 'Could not update task'))
@@ -132,7 +126,7 @@ function TaskPage() {
       )
 
       setEditingTaskId(null)
-    } else {
+      } else {
       const response = await fetch(
         `${API_BASE_URL}/api/tasks`,
         {
@@ -149,7 +143,7 @@ function TaskPage() {
         return
       }
 
-      const createdTask = await response.json()  
+      const createdTask = await readResponse(response)
 
       if (!response.ok) {
         setError(getErrorMessage(createdTask, 'Could not create task'))
@@ -157,43 +151,46 @@ function TaskPage() {
       }
 
       setTasks([...tasks, createdTask])
-    }
+      }
 
-    setFormData({
-      title: '',
-      description: '',
-      status: 'TODO',
-      priority: 'MEDIUM'
-    })
+      setFormData({
+        title: '',
+        description: '',
+        status: 'TODO',
+        priority: 'MEDIUM'
+      })
+    } catch {
+      setError(editingTaskId ? 'Unable to update task. Please try again.' : 'Unable to add task. Please try again.')
+    }
   }
 
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token')
 
-    const response = await fetch(
-      `${API_BASE_URL}/api/tasks/${id}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/tasks/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      )
+
+      if (handleUnauthorized(response)) {
+        return
       }
-    )
 
-    if (handleUnauthorized(response)) {
-      return
-    }
+      if (!response.ok) {
+        const data = await readResponse(response)
+        setError(getErrorMessage(data, 'Could not delete task'))
+        return
+      }
 
-    
-
-    if (!response.ok) {
-      const data = await response.json()
-      setError(getErrorMessage(data, 'Could not delete task'))
-      return
-    }
-
-    if (response.ok) {
       setTasks(tasks.filter((task) => task.id !== id))
+    } catch {
+      setError('Unable to delete task. Please try again.')
     }
   }
 
@@ -227,6 +224,7 @@ function TaskPage() {
         <input
           type="text"
           name="title"
+          aria-label="Task title"
           placeholder="Task title"
           value={formData.title}
           onChange={handleChange}
@@ -234,6 +232,7 @@ function TaskPage() {
 
         <textarea
           name="description"
+          aria-label="Task description"
           placeholder="Description"
           value={formData.description}
           onChange={handleChange}
@@ -241,6 +240,7 @@ function TaskPage() {
 
         <select
           name="status"
+          aria-label="Task status"
           value={formData.status}
           onChange={handleChange}
         >
@@ -251,6 +251,7 @@ function TaskPage() {
 
         <select
           name="priority"
+          aria-label="Task priority"
           value={formData.priority}
           onChange={handleChange}
         >
@@ -266,9 +267,11 @@ function TaskPage() {
 
       <select
         className="task-filter task-filter-status"
+        aria-label="Filter by status"
         value={statusFilter}
         onChange={(event) => {
             setStatusFilter(event.target.value) 
+            setPriorityFilter('')
             setPage(0)
         }}
       >
@@ -280,9 +283,11 @@ function TaskPage() {
 
       <select
         className="task-filter task-filter-priority"
+        aria-label="Filter by priority"
         value={priorityFilter}
         onChange={(event) => {
             setPriorityFilter(event.target.value)
+            setStatusFilter('')
             setPage(0)
         }}
       >
@@ -308,6 +313,11 @@ function TaskPage() {
         </div>
       ))}
 
+      {tasks.length === 0 && (
+        <p className="empty-state">No tasks found</p>
+      )}
+
+      {!statusFilter && !priorityFilter && totalPages > 0 && (
       <div className="task-pagination">
         <button
           onClick={() => setPage(page - 1)}
@@ -327,6 +337,7 @@ function TaskPage() {
           Next
         </button>
       </div>
+      )}
     </div>
   )
 }

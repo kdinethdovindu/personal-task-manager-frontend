@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { API_BASE_URL } from '../api/apiConfig'
+import { getErrorMessage, readResponse } from '../api/responseUtils'
 import {useNavigate} from 'react-router-dom'
 import './AuthPage.css'
 
@@ -19,22 +20,6 @@ function LoginPage() {
     })
   }
 
-  const getErrorMessage = (data) => {
-    if (typeof data === 'string') {
-      return data
-    }
-
-    if (data?.message) {
-      return data.message
-    }
-
-    if (typeof data === 'object' && data !== null) {
-      return Object.values(data).join(', ')
-    }
-
-    return 'Login failed'
-  }
-
   const [error, setError] = useState('')
 
   const navigate = useNavigate()
@@ -44,35 +29,29 @@ function LoginPage() {
 
     setError('')
 
-    const response = await fetch(
-      `${API_BASE_URL}/api/auth/login`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        }
+      )
+      const data = await readResponse(response)
+
+      if (!response.ok) {
+        setError(getErrorMessage(data, 'Login failed'))
+        return
       }
-    )
 
-    const contentType = response.headers.get('content-type')
-
-    let data
-
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
-    } else {
-      data = await response.text()
+      localStorage.setItem('token', data.token)
+      navigate('/tasks')
+    } catch {
+      setError('Unable to reach the server. Please try again.')
     }
-
-    if (!response.ok) {
-      setError(getErrorMessage(data))
-      return
-    }
-
-    localStorage.setItem('token', data.token)
-
-    navigate('/tasks')
   }
 
   return (
@@ -83,6 +62,7 @@ function LoginPage() {
         <input
           type="email"
           name="email"
+          aria-label="Email"
           placeholder="Email"
           value={formData.email}
           onChange={handleChange}
@@ -91,6 +71,7 @@ function LoginPage() {
         <input
           type="password"
           name="password"
+          aria-label="Password"
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
