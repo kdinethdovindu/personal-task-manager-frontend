@@ -68,7 +68,7 @@ https://github.com/kdinethdovindu/Personal-task-manager-Backend
 
 ### Mobile View
 
-<img src="screenshots/tasks-mobile.png" alt="Mobile Task Manager" width="350">
+<img src="screenshots/task-mobile.png" alt="Mobile Task Manager" width="350">
 
 ## Project Structure
 
