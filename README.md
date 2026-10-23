@@ -7,7 +7,7 @@ The application allows users to securely register, log in, and manage their own 
 ## Live Demo
 
 **Application:**  
-https://personal-task-manager-frontend-six.vercel.app
+https://personal-task-manager-frontend-six.vercel.app/register
 
 ## Backend Repository
 
