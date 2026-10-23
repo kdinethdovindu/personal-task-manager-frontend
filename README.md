@@ -11,7 +11,7 @@ https://personal-task-manager-frontend-six.vercel.app/register
 
 ## Backend Repository
 
-https://github.com/kdinethdovindu/Personal-task-manager
+https://github.com/kdinethdovindu/Personal-task-manager-Backend
 
 ## Features
 
